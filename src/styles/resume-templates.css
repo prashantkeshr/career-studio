@@ -1,0 +1,90 @@
+/* ===========================================================================
+   Resume templates. All templates render the SAME canonical DOM (classes
+   prefixed r-); each .tpl-* class restyles it. Accent, font, scale, line
+   height and heading style come from the resume's design tokens (set as
+   inline CSS variables / data-heading on .paper), so customization works
+   uniformly across every template.
+   =========================================================================== */
+
+.paper {
+  --r-accent: #2563eb;
+  font-family: var(--doc-font, var(--font-ui));
+}
+
+.r-header { margin-bottom: 14px; }
+.r-name { font-size: 2em; font-weight: 800; letter-spacing: -0.01em; }
+.r-title { font-size: 1.05em; color: #444; margin-top: 2px; }
+.r-contact { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; font-size: 0.82em; color: #333; }
+.r-contact a { color: inherit; text-decoration: none; }
+.r-contact .sep { color: #bbb; }
+
+.r-section { margin-bottom: var(--doc-sec-gap, 18px); }
+.r-sec-title { font-size: 0.95em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; color: var(--r-accent); }
+
+/* Heading style variants (data-heading on .paper) */
+.paper[data-heading='underline'] .r-sec-title { border-bottom: 2px solid currentColor; padding-bottom: 3px; }
+.paper[data-heading='bar'] .r-sec-title { padding-left: 10px; border-left: 4px solid var(--r-accent); }
+.paper[data-heading='plain'] .r-sec-title { text-transform: none; letter-spacing: 0; color: #111; border-bottom: 1px solid #ddd; padding-bottom: 3px; }
+.paper[data-heading='uppercase'] .r-sec-title { letter-spacing: 0.18em; font-size: 0.8em; }
+
+.r-item { margin-bottom: 11px; }
+.r-item:last-child { margin-bottom: 0; }
+.r-item-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.r-role { font-weight: 700; font-size: 0.98em; }
+.r-org { color: #333; font-size: 0.92em; }
+.r-date { color: #666; font-size: 0.8em; white-space: nowrap; }
+.r-bullets { margin: 5px 0 0; padding-left: 18px; }
+.r-bullets li { margin-bottom: 2px; }
+.r-detail { font-size: 0.88em; color: #444; margin-top: 3px; }
+.r-summary { font-size: 0.9em; color: #222; }
+
+.r-skillgroup { margin-bottom: 5px; font-size: 0.86em; }
+.r-skillgroup b { color: #111; }
+.r-proj-link { font-size: 0.78em; color: var(--r-accent); }
+.r-tech { font-size: 0.78em; color: #555; margin-top: 2px; }
+
+/* Two-column sidebar layout (used by templates that opt in) */
+.r-layout { display: grid; grid-template-columns: 1fr; gap: 0; }
+.tpl-sidebar .r-layout { grid-template-columns: 34% 1fr; gap: 26px; }
+.r-side { }
+.r-main { min-width: 0; }
+
+/* ---------- Classic Professional ---------- */
+.tpl-classic { }
+.tpl-classic .r-header { text-align: center; border-bottom: 2px solid #222; padding-bottom: 12px; }
+.tpl-classic .r-contact { justify-content: center; }
+.tpl-classic .r-name { font-weight: 700; letter-spacing: 0.02em; }
+
+/* ---------- Modern Corporate ---------- */
+.tpl-modern .r-name { color: #111; }
+.tpl-modern .r-title { color: var(--r-accent); font-weight: 600; }
+
+/* ---------- Minimalist ---------- */
+.tpl-minimal { padding: 56px 60px; }
+.tpl-minimal .r-name { font-weight: 300; font-size: 2.1em; letter-spacing: 0.02em; }
+.tpl-minimal .r-title { color: #777; font-weight: 400; }
+.tpl-minimal .r-sec-title { color: #999; font-weight: 600; letter-spacing: 0.22em; font-size: 0.72em; border: none !important; padding: 0 !important; }
+.tpl-minimal .r-section { margin-bottom: 24px; }
+.tpl-minimal .r-date { color: #999; }
+
+/* ---------- Executive ---------- */
+.tpl-executive .r-header { border-bottom: 3px solid var(--r-accent); padding-bottom: 14px; }
+.tpl-executive .r-name { font-size: 2.3em; font-weight: 800; }
+.tpl-executive .r-title { text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.82em; color: var(--r-accent); margin-top: 6px; }
+.tpl-executive .r-role { font-size: 1.02em; }
+
+/* ---------- Academic CV ---------- */
+.tpl-academic { padding: 44px 50px; }
+.tpl-academic .r-header { text-align: center; }
+.tpl-academic .r-contact { justify-content: center; }
+.tpl-academic .r-sec-title { color: #111; border-bottom: 1px solid #333; padding-bottom: 2px; text-transform: none; letter-spacing: 0.01em; font-variant: small-caps; font-size: 1.05em; }
+.tpl-academic .r-section { margin-bottom: 16px; }
+.tpl-academic .r-bullets { padding-left: 16px; }
+
+/* ---------- Technical (sidebar) ---------- */
+.tpl-technical.tpl-sidebar .r-side { background: #f4f6fa; border-radius: 8px; padding: 16px; }
+.tpl-technical .r-side .r-name { font-size: 1.5em; }
+.tpl-technical .r-side .r-sec-title { color: var(--r-accent); }
+.tpl-technical .r-skillgroup { font-family: var(--font-ui); }
+.tpl-technical .r-chip-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 3px; }
+.tpl-technical .r-chip-list span { background: var(--r-accent); color: #fff; border-radius: 4px; padding: 1px 7px; font-size: 0.74em; }
