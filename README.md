@@ -5,10 +5,10 @@ browser. One reusable **Career Profile** feeds many documents; a shared design
 system keeps them consistent; everything is stored locally and nothing is
 uploaded to any server.
 
-> **Status: Phases 1–3 complete and runnable.**
-> This is an honest, incremental build. Remaining work (Portfolio, Website
-> builder, image/asset studio, cover letters, AI assist) is scaffolded in the
-> feature registry as **Coming soon** and is *not* faked in the UI. See
+> **Status: Phases 1–4 complete and runnable.**
+> This is an honest, incremental build. Remaining work (image/asset studio,
+> cover letters, AI assist, version comparison) is scaffolded in the feature
+> registry as **Coming soon** and is *not* faked in the UI. See
 > [Roadmap](#roadmap).
 
 ---
@@ -37,12 +37,15 @@ uploaded to any server.
 | PDF annotations | ✅ Available | Text, highlight & box overlays baked into the exported PDF. Overlay only — does not remove underlying content. |
 | PDF → resume reconstruction | ◐ Partial | Extracts the PDF text layer into an editable resume with a review step; layout not preserved. |
 | OCR (scanned PDFs) | ◐ Partial | Optional, in-browser (tesseract.js). Downloads a language model on first use (needs internet) and may misread — review required. |
+| Portfolio Studio | ✅ Available | Reusable projects with images (auto-resized); live on your Career Profile, feed any website. |
+| Website Studio | ✅ Available | No-code builder: hero/about/sections, 3 templates, theme, SEO. Live preview renders the real generated HTML. |
+| Static website export (ZIP) | ✅ Available | Self-contained `index.html` + CSS/JS + assets + `sitemap.xml` / `robots.txt` / `README`; runs with no backend (JSZip). |
 | Responsive + light/dark | ✅ Available | Three-panel desktop; tabbed panes on mobile. |
 
-**Not yet built (shown honestly as "Coming soon" in-app):** image/asset studio,
-portfolio studio, website builder & ZIP export, cover-letter builder, and
+**Not yet built (shown honestly as "Coming soon" in-app):** standalone
+image/asset studio, cover-letter builder, resume version comparison, and
 optional AI writing assistance. Automatic cloud publishing is intentionally
-**Not supported** — there is no backend.
+**Not supported** — there is no backend (export the ZIP and self-host).
 
 `docx` and `mammoth` are **code-split** (dynamic import) so they load only when
 you export or import a Word file, keeping the initial bundle small (~80 kB gzip).
@@ -185,7 +188,9 @@ src/
   delete, duplicate, extract, merge, split, export), PDF annotations (text /
   highlight / box overlays), PDF→resume reconstruction (text layer + review),
   and optional in-browser OCR for scanned PDFs.
-- **Phase 4** — Portfolio Studio and no-code Website Studio with static ZIP export.
+- **Phase 4 — done:** Portfolio Studio (reusable projects + images) and the
+  no-code Website Studio with 3 templates, SEO, live iframe preview of the real
+  generated HTML, and self-contained static ZIP export.
 - **Phase 5** — advanced templates, localization, optional AI integrations, PWA/offline.
 
 Features are promoted from "Coming soon" to "Available" only after they are

@@ -66,7 +66,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (ok) {
         const [p, list] = await Promise.all([db.loadProfile(), db.listProjects()]);
         if (cancelled) return;
-        if (p) setProfile(p);
+        // Backfill fields added in later schema versions.
+        if (p) setProfile({ ...p, portfolioProjects: Array.isArray(p.portfolioProjects) ? p.portfolioProjects : [] });
         setProjects(list);
       }
       setReady(true);

@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../state/store';
 import { TEMPLATES } from '../resume-studio/templates/registry';
-import { newResumeProject, contentFromProfile } from '../../core/models/factory';
+import { newResumeProject, newWebsiteProject, contentFromProfile } from '../../core/models/factory';
 import { sampleProfile, sampleResume } from '../../core/sampleData';
 import * as dbApi from '../../core/storage/db';
 import { buildBackup, parseBackup, download, safeFilename } from '../../services/exports/backup';
@@ -49,6 +49,17 @@ export function Dashboard() {
     navigate(`/resume/${proj.id}`);
   };
 
+  const createWebsite = async () => {
+    const proj = newWebsiteProject({ title: hasProfile ? `${profile.fullName} — Website` : 'My website', templateId: 'standard', profile });
+    await saveProjectRecord(proj);
+    navigate(`/website/${proj.id}`);
+  };
+
+  const openProject = (p: ProjectEnvelope) => {
+    if (p.type === 'website') navigate(`/website/${p.id}`);
+    else navigate(`/resume/${p.id}`);
+  };
+
   const loadSample = async () => {
     const p = sampleProfile();
     const r = sampleResume(p);
@@ -77,7 +88,6 @@ export function Dashboard() {
     setTimeout(() => window.location.reload(), 900);
   };
 
-  const resumeCount = projects.filter((p) => p.type === 'resume').length;
 
   return (
     <div className="content">
@@ -101,7 +111,9 @@ export function Dashboard() {
         <button className="btn btn-primary" onClick={() => setPickOpen(true)}><Icon name="plus" size={16} /> New resume</button>
         <button className="btn" onClick={() => setImportDocx(true)}><Icon name="file" size={16} /> Import from Word</button>
         <button className="btn" onClick={() => setImportPdf(true)}><Icon name="file" size={16} /> Rebuild from PDF</button>
+        <button className="btn" onClick={createWebsite}><Icon name="home" size={16} /> New website</button>
         <button className="btn" onClick={() => navigate('/pdf')}><Icon name="print" size={16} /> PDF Studio</button>
+        <button className="btn" onClick={() => navigate('/portfolio')}><Icon name="copy" size={16} /> Portfolio</button>
         <button className="btn" onClick={() => navigate('/profile')}><Icon name="user" size={16} /> Edit Career Profile</button>
         <button className="btn" onClick={exportAll} disabled={projects.length === 0 && !hasProfile}><Icon name="download" size={16} /> Back up everything</button>
         <button className="btn" onClick={() => fileRef.current?.click()}><Icon name="upload" size={16} /> Restore backup</button>
@@ -112,7 +124,7 @@ export function Dashboard() {
       {restoreMsg && <div className="card" style={{ padding: 12, marginBottom: 16 }}><span className="muted" style={{ fontSize: 13 }}>{restoreMsg}</span></div>}
 
       {/* Projects */}
-      <h2 style={{ fontSize: 18, marginBottom: 10 }}>Resumes {resumeCount > 0 && <span className="faint">({resumeCount})</span>}</h2>
+      <h2 style={{ fontSize: 18, marginBottom: 10 }}>Your projects {projects.length > 0 && <span className="faint">({projects.length})</span>}</h2>
       {projects.length === 0 ? (
         <div className="card" style={{ padding: 28, textAlign: 'center' }}>
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>No projects yet</div>
@@ -134,7 +146,7 @@ export function Dashboard() {
                 {'templateId' in (p.data as object) ? `${(p.data as { templateId: string }).templateId} · ` : ''}edited {relTime(p.updatedAt)}
               </div>
               <div className="row" style={{ marginTop: 'auto', gap: 6 }}>
-                <button className="btn btn-sm btn-primary" onClick={() => navigate(`/resume/${p.id}`)} disabled={p.type !== 'resume'}>Open</button>
+                <button className="btn btn-sm btn-primary" onClick={() => openProject(p)}>Open</button>
                 <button className="btn btn-sm btn-ghost btn-danger" onClick={() => setConfirmDelete(p.id)}><Icon name="trash" size={14} /></button>
               </div>
             </div>

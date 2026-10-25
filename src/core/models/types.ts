@@ -8,7 +8,7 @@
 // reordering, editing and (future) version comparison stay reliable.
 // ---------------------------------------------------------------------------
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export type ID = string;
 
@@ -92,10 +92,27 @@ export interface ResumeContent {
   customSections: CustomSection[];
 }
 
+/** A portfolio/case-study project, reusable across sites. */
+export interface PortfolioProject {
+  id: ID;
+  title: string;
+  summary: string;
+  description: string;
+  role: string;
+  tech: string[];
+  link: string;
+  repo: string;
+  demo: string;
+  date: string;
+  /** Optional cover image as a data URL (kept small; embedded in exports). */
+  image: string;
+}
+
 /** The master reusable profile. Structurally a superset of ResumeContent. */
 export interface CareerProfile extends ResumeContent {
   id: ID;
   objective: string;
+  portfolioProjects: PortfolioProject[];
   updatedAt: number;
 }
 
@@ -151,6 +168,36 @@ export interface ResumeData {
 // --- Project envelope ---------------------------------------------------
 
 export type ProjectType = 'resume' | 'cover-letter' | 'portfolio' | 'website';
+
+// --- Website builder ----------------------------------------------------
+
+export type WebsiteSectionKey = 'about' | 'skills' | 'experience' | 'education' | 'projects' | 'contact';
+
+export interface WebsiteSectionCfg {
+  key: WebsiteSectionKey;
+  visible: boolean;
+}
+
+export interface WebsiteSEO {
+  title: string;
+  description: string;
+  ogImage: string;
+  favicon: string; // emoji or short text used to generate a favicon
+}
+
+export interface WebsiteData {
+  templateId: string;
+  theme: { accent: string; font: FontKey; dark: boolean };
+  hero: { headline: string; tagline: string };
+  about: string;
+  sections: WebsiteSectionCfg[];
+  /** Self-contained snapshot of the reusable content at creation (editable). */
+  snapshot: ResumeContent;
+  projects: PortfolioProject[];
+  seo: WebsiteSEO;
+}
+
+export type WebsiteProject = ProjectEnvelope<WebsiteData> & { type: 'website' };
 
 export interface ProjectEnvelope<T = unknown> {
   id: ID;

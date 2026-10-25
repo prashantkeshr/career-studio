@@ -80,6 +80,34 @@ export function sampleProfile(): CareerProfile {
       { id: uid('crt'), name: 'AWS Certified Developer – Associate', issuer: 'Amazon Web Services', date: '2022' },
     ],
     customSections: [],
+    portfolioProjects: [
+      {
+        id: uid('pf'),
+        title: 'OpenMetrics Dashboard',
+        summary: 'A zero-config, self-hosted metrics dashboard.',
+        description: 'Designed and built an open-source dashboard that reads Prometheus endpoints with no setup. Used by 40+ teams.',
+        role: 'Creator & maintainer',
+        tech: ['React', 'TypeScript', 'D3'],
+        link: 'github.com/averysample/openmetrics',
+        repo: 'github.com/averysample/openmetrics',
+        demo: 'openmetrics.example.com',
+        date: '2023',
+        image: '',
+      },
+      {
+        id: uid('pf'),
+        title: 'Dashboard Performance Rebuild',
+        summary: 'Cut initial load from 4.1s to 1.3s for 50k users.',
+        description: 'Led a ground-up rebuild of the customer dashboard: code-splitting, virtualization and a shared component library.',
+        role: 'Tech lead',
+        tech: ['React', 'Vite', 'Web Workers'],
+        link: '',
+        repo: '',
+        demo: '',
+        date: '2022',
+        image: '',
+      },
+    ],
   };
 }
 

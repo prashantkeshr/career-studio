@@ -1,9 +1,13 @@
 import type {
   CareerProfile,
+  PortfolioProject,
   ResumeContent,
   ResumeData,
   ResumeDesign,
   ResumeProject,
+  WebsiteData,
+  WebsiteProject,
+  WebsiteSectionCfg,
 } from './types';
 import { SCHEMA_VERSION } from './types';
 
@@ -38,8 +42,13 @@ export function emptyProfile(): CareerProfile {
     ...emptyContent(),
     id: 'primary',
     objective: '',
+    portfolioProjects: [],
     updatedAt: Date.now(),
   };
+}
+
+export function emptyPortfolioProject(): PortfolioProject {
+  return { id: uid('pf'), title: '', summary: '', description: '', role: '', tech: [], link: '', repo: '', demo: '', date: '', image: '' };
 }
 
 export function defaultDesign(): ResumeDesign {
@@ -98,6 +107,52 @@ export function contentFromProfile(profile: CareerProfile): ResumeContent {
     certifications,
     customSections,
   });
+}
+
+export const DEFAULT_WEBSITE_SECTIONS: WebsiteSectionCfg[] = [
+  { key: 'about', visible: true },
+  { key: 'skills', visible: true },
+  { key: 'experience', visible: true },
+  { key: 'projects', visible: true },
+  { key: 'education', visible: true },
+  { key: 'contact', visible: true },
+];
+
+export function newWebsiteProject(opts: {
+  title: string;
+  templateId: string;
+  profile: CareerProfile;
+}): WebsiteProject {
+  const now = Date.now();
+  const content = contentFromProfile(opts.profile);
+  const data: WebsiteData = {
+    templateId: opts.templateId,
+    theme: { accent: '#2563eb', font: 'inter', dark: false },
+    hero: {
+      headline: opts.profile.fullName ? `Hi, I’m ${opts.profile.fullName.split(' ')[0]}.` : 'Hi, I’m …',
+      tagline: opts.profile.title || 'Your professional tagline',
+    },
+    about: opts.profile.summary || '',
+    sections: structuredClone(DEFAULT_WEBSITE_SECTIONS),
+    snapshot: content,
+    projects: structuredClone(opts.profile.portfolioProjects ?? []),
+    seo: {
+      title: [opts.profile.fullName, opts.profile.title].filter(Boolean).join(' — ') || 'My personal website',
+      description: (opts.profile.summary || '').slice(0, 155),
+      ogImage: '',
+      favicon: (opts.profile.fullName || '•').trim().charAt(0).toUpperCase() || '•',
+    },
+  };
+  return {
+    id: uid('web'),
+    type: 'website',
+    schemaVersion: SCHEMA_VERSION,
+    title: opts.title || 'Untitled website',
+    createdAt: now,
+    updatedAt: now,
+    archived: false,
+    data,
+  };
 }
 
 export function newResumeProject(opts: {
