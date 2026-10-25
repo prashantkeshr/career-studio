@@ -1,9 +1,13 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
 import { Dashboard } from './features/dashboard/Dashboard';
 import { CareerProfilePage } from './features/career-profile/CareerProfile';
 import { ResumeStudio } from './features/resume-studio/ResumeStudio';
 import { useStore } from './state/store';
+
+// PDF Studio pulls in pdf.js / pdf-lib — load it only when the route is visited.
+const PdfStudio = lazy(() => import('./features/pdf-studio/PdfStudio').then((m) => ({ default: m.PdfStudio })));
 
 export function App() {
   const { ready } = useStore();
@@ -18,6 +22,7 @@ export function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/profile" element={<CareerProfilePage />} />
           <Route path="/resume/:id" element={<ResumeStudio />} />
+          <Route path="/pdf" element={<Suspense fallback={<div className="content" style={{ paddingTop: 60, textAlign: 'center' }}><p className="muted">Loading PDF Studio…</p></div>}><PdfStudio /></Suspense>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       )}

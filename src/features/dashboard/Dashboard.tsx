@@ -99,6 +99,7 @@ export function Dashboard() {
       <div className="row-wrap" style={{ marginBottom: 20 }}>
         <button className="btn btn-primary" onClick={() => setPickOpen(true)}><Icon name="plus" size={16} /> New resume</button>
         <button className="btn" onClick={() => setImportOpen(true)}><Icon name="file" size={16} /> Import from Word</button>
+        <button className="btn" onClick={() => navigate('/pdf')}><Icon name="print" size={16} /> PDF Studio</button>
         <button className="btn" onClick={() => navigate('/profile')}><Icon name="user" size={16} /> Edit Career Profile</button>
         <button className="btn" onClick={exportAll} disabled={projects.length === 0 && !hasProfile}><Icon name="download" size={16} /> Back up everything</button>
         <button className="btn" onClick={() => fileRef.current?.click()}><Icon name="upload" size={16} /> Restore backup</button>

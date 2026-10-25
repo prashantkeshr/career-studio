@@ -5,10 +5,10 @@ browser. One reusable **Career Profile** feeds many documents; a shared design
 system keeps them consistent; everything is stored locally and nothing is
 uploaded to any server.
 
-> **Status: Phases 1–2 complete and runnable.**
-> This is an honest, incremental build. Later phases (PDF Studio, Portfolio,
-> Website builder) are scaffolded in the feature registry as **Coming soon** and
-> are *not* faked in the UI. See [Roadmap](#roadmap).
+> **Status: Phases 1–3 (page ops) complete and runnable.**
+> This is an honest, incremental build. Remaining work (PDF annotations/OCR,
+> Portfolio, Website builder) is scaffolded in the feature registry as
+> **Coming soon** and is *not* faked in the UI. See [Roadmap](#roadmap).
 
 ---
 
@@ -32,13 +32,14 @@ uploaded to any server.
 | Plain-text export | ✅ Available | ATS-friendly `.txt`. |
 | Backup & restore | ✅ Available | Full-workspace or single-resume JSON; validated on import. |
 | Schema migrations | ✅ Available | Saved projects are migrated forward on load (v1 → v2). |
+| PDF Studio — page ops | ✅ Available | View, reorder, rotate, delete, duplicate, extract, **merge** & **split**; export edited PDF (pdf.js + pdf-lib, non-destructive). |
 | Responsive + light/dark | ✅ Available | Three-panel desktop; tabbed panes on mobile. |
 
-**Not yet built (shown honestly as "Coming soon" in-app):** PDF import &
-reconstruction, PDF Studio (annotate / page ops), image/asset studio, portfolio
-studio, website builder & ZIP export, cover-letter builder, OCR, and optional AI
-writing assistance. Automatic cloud publishing is intentionally **Not supported**
-— there is no backend.
+**Not yet built (shown honestly as "Coming soon" in-app):** PDF annotations,
+PDF import & resume reconstruction, OCR for scanned PDFs, image/asset studio,
+portfolio studio, website builder & ZIP export, cover-letter builder, and
+optional AI writing assistance. Automatic cloud publishing is intentionally
+**Not supported** — there is no backend.
 
 `docx` and `mammoth` are **code-split** (dynamic import) so they load only when
 you export or import a Word file, keeping the initial bundle small (~80 kB gzip).
@@ -177,8 +178,9 @@ src/
 - **Phase 2 remainder (planned):** side-by-side version comparison, image/asset
   manager, cover-letter builder, smarter pagination, automated tests
   (Vitest + Playwright).
-- **Phase 3** — PDF Studio: viewer, page operations, annotations, PDF→resume
-  reconstruction, optional OCR.
+- **Phase 3 — in progress:** PDF Studio page operations (viewer, reorder,
+  rotate, delete, duplicate, extract, merge, split, export) are **done**.
+  Remaining: PDF annotations, PDF→resume reconstruction, optional OCR.
 - **Phase 4** — Portfolio Studio and no-code Website Studio with static ZIP export.
 - **Phase 5** — advanced templates, localization, optional AI integrations, PWA/offline.
 

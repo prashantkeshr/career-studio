@@ -26,6 +26,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav className={`nav ${navOpen ? 'open' : ''}`} onClick={() => setNavOpen(false)}>
           <NavLink to="/" end>Dashboard</NavLink>
           <NavLink to="/profile">Career Profile</NavLink>
+          <NavLink to="/pdf">PDF Studio</NavLink>
         </nav>
 
         <span className="spacer" />
