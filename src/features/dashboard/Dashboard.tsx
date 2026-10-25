@@ -10,7 +10,7 @@ import { FEATURES } from '../../core/feature-registry/registry';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Confirm } from '../../components/ui/Confirm';
 import { Icon } from '../../components/ui/Icon';
-import { DocxImportModal } from '../import/DocxImportModal';
+import { ImportModal } from '../import/ImportModal';
 import type { ProjectEnvelope } from '../../core/models/types';
 
 function relTime(ts: number): string {
@@ -28,7 +28,8 @@ export function Dashboard() {
   const { projects, profile, refreshProjects, saveProjectRecord, deleteProjectRecord, storageOk } = useStore();
   const navigate = useNavigate();
   const [pickOpen, setPickOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
+  const [importDocx, setImportDocx] = useState(false);
+  const [importPdf, setImportPdf] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [restoreMsg, setRestoreMsg] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -98,7 +99,8 @@ export function Dashboard() {
       {/* Quick actions */}
       <div className="row-wrap" style={{ marginBottom: 20 }}>
         <button className="btn btn-primary" onClick={() => setPickOpen(true)}><Icon name="plus" size={16} /> New resume</button>
-        <button className="btn" onClick={() => setImportOpen(true)}><Icon name="file" size={16} /> Import from Word</button>
+        <button className="btn" onClick={() => setImportDocx(true)}><Icon name="file" size={16} /> Import from Word</button>
+        <button className="btn" onClick={() => setImportPdf(true)}><Icon name="file" size={16} /> Rebuild from PDF</button>
         <button className="btn" onClick={() => navigate('/pdf')}><Icon name="print" size={16} /> PDF Studio</button>
         <button className="btn" onClick={() => navigate('/profile')}><Icon name="user" size={16} /> Edit Career Profile</button>
         <button className="btn" onClick={exportAll} disabled={projects.length === 0 && !hasProfile}><Icon name="download" size={16} /> Back up everything</button>
@@ -178,7 +180,8 @@ export function Dashboard() {
         </div>
       )}
 
-      <DocxImportModal open={importOpen} onClose={() => setImportOpen(false)} onCreated={(pid) => { setImportOpen(false); navigate(`/resume/${pid}`); }} />
+      <ImportModal source="docx" open={importDocx} onClose={() => setImportDocx(false)} onCreated={(pid) => { setImportDocx(false); navigate(`/resume/${pid}`); }} />
+      <ImportModal source="pdf" open={importPdf} onClose={() => setImportPdf(false)} onCreated={(pid) => { setImportPdf(false); navigate(`/resume/${pid}`); }} />
 
       <Confirm
         open={confirmDelete !== null}

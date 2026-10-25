@@ -28,6 +28,28 @@ export interface PageRef {
   rotation: number; // added rotation in degrees (0/90/180/270)
 }
 
+export type AnnotationType = 'text' | 'highlight' | 'box';
+
+/** Overlay annotation, stored in normalised [0,1] coords from the page top-left. */
+export interface Annotation {
+  id: string;
+  type: AnnotationType;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  color: string; // hex, e.g. #dc2626
+  text?: string;
+  fontSize?: number; // px at display scale
+}
+
+function hexToRgb01(hex: string): { r: number; g: number; b: number } {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return { r: 0, g: 0, b: 0 };
+  const n = parseInt(m[1], 16);
+  return { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255 };
+}
+
 export class PdfError extends Error {}
 
 /** Load a File into a source document (pdf.js proxy + bytes for pdf-lib). */
@@ -62,11 +84,19 @@ export async function renderThumb(source: PdfSource, ref: PageRef, width = 150):
   return canvas.toDataURL('image/png');
 }
 
-/** Build a new PDF (bytes) from the given page refs, applying rotations. */
-export async function buildPdf(sources: Map<string, PdfSource>, pages: PageRef[]): Promise<Uint8Array> {
-  const { PDFDocument, degrees } = await import('pdf-lib');
+/**
+ * Build a new PDF (bytes) from the given page refs, applying rotations and
+ * (optionally) overlay annotations. Annotation coordinates are drawn correctly
+ * on upright pages; on rotated pages they are placed in the page's own
+ * coordinate space and rotate along with it.
+ */
+export async function buildPdf(
+  sources: Map<string, PdfSource>,
+  pages: PageRef[],
+  annotations?: Map<string, Annotation[]>,
+): Promise<Uint8Array> {
+  const { PDFDocument, degrees, rgb } = await import('pdf-lib');
   const out = await PDFDocument.create();
-  // Load each needed source into pdf-lib once.
   const libDocs = new Map<string, Awaited<ReturnType<typeof PDFDocument.load>>>();
   for (const srcId of new Set(pages.map((p) => p.srcId))) {
     const src = sources.get(srcId);
@@ -77,6 +107,30 @@ export async function buildPdf(sources: Map<string, PdfSource>, pages: PageRef[]
     const lib = libDocs.get(ref.srcId);
     if (!lib) continue;
     const [copied] = await out.copyPages(lib, [ref.index]);
+
+    // Draw annotations before rotation so they share the page coordinate space.
+    const anns = annotations?.get(ref.id);
+    if (anns && anns.length) {
+      const { width: W, height: H } = copied.getSize();
+      for (const a of anns) {
+        const c = hexToRgb01(a.color);
+        const x = a.x * W;
+        const yTop = a.y * H;
+        const w = a.w * W;
+        const h = a.h * H;
+        if (a.type === 'highlight') {
+          copied.drawRectangle({ x, y: H - yTop - h, width: w, height: h, color: rgb(c.r, c.g, c.b), opacity: 0.35 });
+        } else if (a.type === 'box') {
+          copied.drawRectangle({ x, y: H - yTop - h, width: w, height: h, borderColor: rgb(c.r, c.g, c.b), borderWidth: 1.5, opacity: 0 });
+        } else {
+          // fontSize is stored as a fraction of page height so display and
+          // export stay consistent regardless of the preview scale.
+          const fs = (a.fontSize ?? 0.025) * H;
+          copied.drawText(a.text ?? '', { x, y: H - yTop - fs, size: fs, color: rgb(c.r, c.g, c.b) });
+        }
+      }
+    }
+
     if (ref.rotation % 360 !== 0) {
       const current = copied.getRotation().angle;
       copied.setRotation(degrees((current + ref.rotation) % 360));

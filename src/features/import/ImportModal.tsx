@@ -1,53 +1,84 @@
 import { useRef, useState } from 'react';
 import { extractDocx, buildContentFromExtraction, type ExtractedDoc, type SectionKeyGuess } from '../../services/imports/docxImport';
+import { extractPdfText, extractPdfViaOcr } from '../../services/imports/pdfImport';
 import { newResumeProject } from '../../core/models/factory';
 import { useStore } from '../../state/store';
 import { Icon } from '../../components/ui/Icon';
 
 const KEY_OPTIONS: SectionKeyGuess[] = ['summary', 'experience', 'education', 'skills', 'projects', 'certifications', 'custom'];
 
-export function DocxImportModal({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (id: string) => void }) {
+type Source = 'docx' | 'pdf';
+
+const ACCEPT: Record<Source, string> = {
+  docx: '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  pdf: 'application/pdf,.pdf',
+};
+
+export function ImportModal({ source, open, onClose, onCreated }: { source: Source; open: boolean; onClose: () => void; onCreated: (id: string) => void }) {
   const { saveProjectRecord } = useStore();
   const [step, setStep] = useState<'pick' | 'working' | 'review'>('pick');
   const [doc, setDoc] = useState<ExtractedDoc | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<string | null>(null);
+  const [useOcr, setUseOcr] = useState(false);
+  const [scanned, setScanned] = useState(false);
+  const lastFile = useRef<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   if (!open) return null;
 
-  const reset = () => { setStep('pick'); setDoc(null); setError(null); };
-  const close = () => { reset(); onClose(); };
+  const reset = () => { setStep('pick'); setDoc(null); setError(null); setProgress(null); setScanned(false); lastFile.current = null; };
+  const close = () => { reset(); setUseOcr(false); onClose(); };
 
-  const onFile = async (file: File) => {
+  const run = async (file: File, ocr: boolean) => {
     setError(null);
-    if (!/\.docx$/i.test(file.name)) { setError('Please choose a .docx file. (.doc and PDF import are not supported yet.)'); return; }
-    if (file.size > 10 * 1024 * 1024) { setError('That file is larger than 10 MB. Try a smaller document.'); return; }
+    setProgress(null);
     setStep('working');
     try {
-      const extracted = await extractDocx(file);
+      let extracted: ExtractedDoc;
+      if (source === 'docx') {
+        extracted = await extractDocx(file);
+      } else if (ocr) {
+        extracted = await extractPdfViaOcr(file, (msg, frac) => setProgress(`${msg} ${Math.round(frac * 100)}%`));
+      } else {
+        const res = await extractPdfText(file);
+        setScanned(res.scanned);
+        extracted = res;
+      }
       setDoc(extracted);
       setStep('review');
     } catch {
-      setError('Could not read that document. It may be corrupted, password-protected, or an unsupported format.');
+      setError('Could not read that file. It may be corrupted, password-protected, or an unsupported format.');
       setStep('pick');
     }
+  };
+
+  const onFile = async (file: File) => {
+    const ok = source === 'docx' ? /\.docx$/i.test(file.name) : /\.pdf$/i.test(file.name);
+    if (!ok) { setError(`Please choose a ${source === 'docx' ? '.docx' : '.pdf'} file.`); return; }
+    if (file.size > 25 * 1024 * 1024) { setError('That file is larger than 25 MB. Try a smaller document.'); return; }
+    lastFile.current = file;
+    await run(file, useOcr);
   };
 
   const create = async () => {
     if (!doc) return;
     const content = buildContentFromExtraction(doc);
-    const proj = newResumeProject({ title: (content.fullName ? `${content.fullName} — Imported` : 'Imported resume'), templateId: 'modern', content });
+    const proj = newResumeProject({ title: content.fullName ? `${content.fullName} — Imported` : 'Imported resume', templateId: 'modern', content });
     await saveProjectRecord(proj);
     onCreated(proj.id);
     reset();
+    setUseOcr(false);
   };
 
+  const label = source === 'docx' ? 'Word (.docx)' : 'PDF';
+
   return (
-    <div role="dialog" aria-modal="true" aria-label="Import from DOCX" onClick={close}
+    <div role="dialog" aria-modal="true" aria-label={`Import from ${label}`} onClick={close}
       style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', zIndex: 100, padding: 16 }}>
       <div className="card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 680, width: '100%', maxHeight: '88vh', overflow: 'auto', padding: 20 }}>
         <div className="row" style={{ justifyContent: 'space-between', marginBottom: 10 }}>
-          <h3>Import resume from Word (.docx)</h3>
+          <h3>{source === 'pdf' ? 'Rebuild a resume from a PDF' : 'Import resume from Word (.docx)'}</h3>
           <button className="btn btn-sm btn-ghost btn-icon" aria-label="Close" onClick={close}><Icon name="x" /></button>
         </div>
 
@@ -57,20 +88,34 @@ export function DocxImportModal({ open, onClose, onCreated }: { open: boolean; o
               Text and structure are extracted locally in your browser. <strong>Visual formatting is not preserved</strong> — you’ll review the
               detected sections before anything is created, and can fix everything afterwards in the editor.
             </p>
+            {source === 'pdf' && (
+              <label className="row" style={{ gap: 8, fontSize: 13, marginBottom: 10 }}>
+                <input type="checkbox" checked={useOcr} onChange={(e) => setUseOcr(e.target.checked)} />
+                This PDF is scanned — use OCR (downloads a language model on first use; needs internet)
+              </label>
+            )}
             {error && <div className="card" style={{ padding: 10, marginBottom: 10, borderColor: 'var(--danger)' }}><span className="sev-error" style={{ fontSize: 13 }}>{error}</span></div>}
-            <button className="btn btn-primary" onClick={() => fileRef.current?.click()}><Icon name="upload" size={15} /> Choose a .docx file</button>
-            <input ref={fileRef} type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
+            <button className="btn btn-primary" onClick={() => fileRef.current?.click()}><Icon name="upload" size={15} /> Choose a {source === 'docx' ? '.docx' : '.pdf'} file</button>
+            <input ref={fileRef} type="file" accept={ACCEPT[source]} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
           </>
         )}
 
-        {step === 'working' && <p className="muted">Reading document…</p>}
+        {step === 'working' && (
+          <div>
+            <p className="muted">{progress ?? (source === 'pdf' && useOcr ? 'Starting OCR…' : 'Reading document…')}</p>
+            {source === 'pdf' && useOcr && <p className="faint" style={{ fontSize: 12 }}>OCR can take a while and downloads a model on first use.</p>}
+          </div>
+        )}
 
         {step === 'review' && doc && (
           <>
             <p className="muted" style={{ marginTop: 0, fontSize: 13 }}>Review and correct the extracted content, then create the resume. Reclassify any mislabelled section with the dropdown.</p>
-            {doc.warnings.length > 0 && (
+            {(doc.warnings.length > 0 || scanned) && (
               <div className="card" style={{ padding: 10, marginBottom: 12, borderColor: 'var(--warning)' }}>
                 {doc.warnings.map((w, i) => <div key={i} className="sev-warning" style={{ fontSize: 12.5 }}><Icon name="alert" size={13} /> {w}</div>)}
+                {source === 'pdf' && scanned && !useOcr && lastFile.current && (
+                  <button className="btn btn-sm" style={{ marginTop: 8 }} onClick={() => { setUseOcr(true); run(lastFile.current!, true); }}>Re-run with OCR</button>
+                )}
               </div>
             )}
             <div className="entry-grid">

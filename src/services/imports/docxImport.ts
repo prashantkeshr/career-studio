@@ -44,6 +44,64 @@ function guessKey(heading: string): SectionKeyGuess {
 const EMAIL_RE = /[^\s@]+@[^\s@]+\.[^\s@]+/;
 const PHONE_RE = /(\+?\d[\d\s().-]{7,}\d)/;
 
+/** A linearised document block — the common input for all importers. */
+export interface ImportBlock {
+  kind: 'heading' | 'para' | 'bullet';
+  text: string;
+}
+
+/**
+ * Shared assembly: turn a linear list of blocks (from DOCX, PDF, …) into an
+ * ExtractedDoc. The first unmatched heading / first preamble line becomes the
+ * name; email/phone/link lines become the contact line; known headings map to
+ * sections and everything else becomes a custom section or implicit summary.
+ */
+export function buildDocFromBlocks(blocks: ImportBlock[], warnings: string[] = []): ExtractedDoc {
+  let name = '';
+  let title = '';
+  const sections: ExtractedSection[] = [];
+  let current: ExtractedSection | null = null;
+  const preamble: string[] = [];
+
+  const pushLine = (text: string, bullet: boolean) => {
+    const t = text.replace(/\s+/g, ' ').trim();
+    if (!t) return;
+    if (current) current.text += (current.text ? '\n' : '') + (bullet ? `• ${t}` : t);
+    else preamble.push(t);
+  };
+
+  for (const b of blocks) {
+    const t = b.text.replace(/\s+/g, ' ').trim();
+    if (!t) continue;
+    if (b.kind === 'heading') {
+      const key = guessKey(t);
+      if (!name && key === 'custom' && sections.length === 0 && preamble.length === 0) {
+        name = t;
+        continue;
+      }
+      current = { id: uid('sec'), key, title: t, text: '' };
+      sections.push(current);
+    } else {
+      pushLine(t, b.kind === 'bullet');
+    }
+  }
+
+  const contactBits: string[] = [];
+  const leftover: string[] = [];
+  for (const line of preamble) {
+    if (EMAIL_RE.test(line) || PHONE_RE.test(line) || /\b(linkedin|github|http)/i.test(line)) contactBits.push(line);
+    else leftover.push(line);
+  }
+  if (!name && leftover.length) name = leftover.shift() ?? '';
+  if (!title && leftover.length) title = leftover.shift() ?? '';
+  const contactLine = contactBits.join('  |  ');
+  if (leftover.length) sections.unshift({ id: uid('sec'), key: 'summary', title: 'Summary', text: leftover.join('\n') });
+
+  if (sections.length === 0) warnings.push('No clear sections were detected — you may need to organise the content manually after import.');
+
+  return { name, title, contactLine, sections, warnings };
+}
+
 export async function extractDocx(file: File): Promise<ExtractedDoc> {
   const warnings: string[] = [];
   const buffer = await file.arrayBuffer();
@@ -55,61 +113,22 @@ export async function extractDocx(file: File): Promise<ExtractedDoc> {
   }
 
   const doc = new DOMParser().parseFromString(html, 'text/html');
-  const blocks = Array.from(doc.body.children);
-
-  let name = '';
-  let title = '';
-  let contactLine = '';
-  const sections: ExtractedSection[] = [];
-  let current: ExtractedSection | null = null;
-  const preamble: string[] = []; // lines before the first heading
-
-  const pushLine = (text: string, bullet: boolean) => {
-    const t = text.replace(/\s+/g, ' ').trim();
-    if (!t) return;
-    if (current) current.text += (current.text ? '\n' : '') + (bullet ? `• ${t}` : t);
-    else preamble.push(t);
-  };
-
-  for (const el of blocks) {
+  const blocks: ImportBlock[] = [];
+  for (const el of Array.from(doc.body.children)) {
     const tag = el.tagName.toLowerCase();
-    const textContent = (el.textContent ?? '').replace(/\s+/g, ' ').trim();
-    if (!textContent && tag !== 'ul' && tag !== 'ol') continue;
-
+    const text = (el.textContent ?? '').replace(/\s+/g, ' ').trim();
     if (tag === 'h1' || tag === 'h2' || tag === 'h3') {
-      // Heading: either the person's name (first heading, no section match) or a section.
-      const key = guessKey(textContent);
-      if (!name && key === 'custom' && sections.length === 0 && preamble.length === 0) {
-        name = textContent;
-        continue;
-      }
-      current = { id: uid('sec'), key, title: textContent, text: '' };
-      sections.push(current);
+      if (text) blocks.push({ kind: 'heading', text });
     } else if (tag === 'ul' || tag === 'ol') {
-      for (const li of Array.from(el.querySelectorAll('li'))) pushLine(li.textContent ?? '', true);
-    } else {
-      pushLine(textContent, false);
+      for (const li of Array.from(el.querySelectorAll('li'))) {
+        const t = (li.textContent ?? '').trim();
+        if (t) blocks.push({ kind: 'bullet', text: t });
+      }
+    } else if (text) {
+      blocks.push({ kind: 'para', text });
     }
   }
-
-  // Derive name/title/contact from the preamble if no explicit name heading.
-  const contactBits: string[] = [];
-  const leftover: string[] = [];
-  for (const line of preamble) {
-    if (EMAIL_RE.test(line) || PHONE_RE.test(line) || /\b(linkedin|github|http)/i.test(line)) contactBits.push(line);
-    else leftover.push(line);
-  }
-  if (!name && leftover.length) name = leftover.shift() ?? '';
-  if (!title && leftover.length) title = leftover.shift() ?? '';
-  contactLine = contactBits.join('  |  ');
-  // Any remaining leftover preamble becomes an implicit summary.
-  if (leftover.length) {
-    sections.unshift({ id: uid('sec'), key: 'summary', title: 'Summary', text: leftover.join('\n') });
-  }
-
-  if (sections.length === 0) warnings.push('No clear sections were detected — you may need to organise the content manually after import.');
-
-  return { name, title, contactLine, sections, warnings };
+  return buildDocFromBlocks(blocks, warnings);
 }
 
 // --- turn the (reviewed) extraction into structured ResumeContent ----------

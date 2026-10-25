@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { loadSource, renderThumb, buildPdf, downloadBytes, PdfError, type PdfSource, type PageRef } from '../../services/pdf/pdfStudio';
+import { loadSource, renderThumb, buildPdf, downloadBytes, PdfError, type PdfSource, type PageRef, type Annotation } from '../../services/pdf/pdfStudio';
 import { safeFilename } from '../../services/exports/backup';
 import { uid } from '../../core/models/factory';
 import { Icon } from '../../components/ui/Icon';
+import { AnnotationLayer, type Tool } from './AnnotationLayer';
 
 export function PdfStudio() {
   const sources = useRef<Map<string, PdfSource>>(new Map());
@@ -15,6 +16,10 @@ export function PdfStudio() {
   const [docName, setDocName] = useState('document');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [annotations, setAnnotations] = useState<Map<string, Annotation[]>>(new Map());
+  const [tool, setTool] = useState<Tool>('select');
+  const [annColor, setAnnColor] = useState('#dc2626');
+  const [selAnn, setSelAnn] = useState<string | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
   const mergeRef = useRef<HTMLInputElement>(null);
 
@@ -75,8 +80,13 @@ export function PdfStudio() {
 
   const rotate = (dir: 1 | -1) => setPages((prev) => prev.map((p) => (selected.size === 0 || selected.has(p.id)) ? { ...p, rotation: ((p.rotation + dir * 90) % 360 + 360) % 360 } : p));
   const rotateOne = (id: string, dir: 1 | -1) => setPages((prev) => prev.map((p) => p.id === id ? { ...p, rotation: ((p.rotation + dir * 90) % 360 + 360) % 360 } : p));
-  const removeSel = () => { setPages((prev) => prev.filter((p) => !selected.has(p.id))); setSelected(new Set()); };
-  const removeOne = (id: string) => { setPages((prev) => prev.filter((p) => p.id !== id)); setSelected((s) => { const n = new Set(s); n.delete(id); return n; }); };
+  const dropAnns = (ids: Set<string>) => setAnnotations((prev) => { const n = new Map(prev); for (const id of ids) n.delete(id); return n; });
+  const removeSel = () => { dropAnns(selected); setPages((prev) => prev.filter((p) => !selected.has(p.id))); setSelected(new Set()); };
+  const removeOne = (id: string) => { dropAnns(new Set([id])); setPages((prev) => prev.filter((p) => p.id !== id)); setSelected((s) => { const n = new Set(s); n.delete(id); return n; }); };
+
+  const pageAnns = (id: string) => annotations.get(id) ?? [];
+  const setPageAnns = (id: string, next: Annotation[]) => setAnnotations((prev) => { const n = new Map(prev); next.length ? n.set(id, next) : n.delete(id); return n; });
+  const deleteSelectedAnn = () => { if (activeId && selAnn) { setPageAnns(activeId, pageAnns(activeId).filter((a) => a.id !== selAnn)); setSelAnn(null); } };
   const duplicateOne = (id: string) => setPages((prev) => {
     const i = prev.findIndex((p) => p.id === id);
     if (i < 0) return prev;
@@ -97,14 +107,14 @@ export function PdfStudio() {
     setError(null);
     setBusy('Building PDF…');
     try {
-      const bytes = await buildPdf(sources.current, which);
+      const bytes = await buildPdf(sources.current, which, annotations);
       downloadBytes(safeFilename(`${docName}-${suffix}`, 'pdf'), bytes);
     } catch {
       setError('Could not build the PDF.');
     } finally {
       setBusy(null);
     }
-  }, [docName]);
+  }, [docName, annotations]);
 
   const hasDoc = pages.length > 0;
 
@@ -167,7 +177,7 @@ export function PdfStudio() {
                         : <span className="faint" style={{ fontSize: 12, display: 'grid', placeItems: 'center', height: '100%' }}>rendering…</span>}
                     </button>
                     <div className="row" style={{ justifyContent: 'space-between', marginTop: 6 }}>
-                      <span className="faint" style={{ fontSize: 12, fontWeight: 600 }}>#{i + 1}</span>
+                      <span className="faint" style={{ fontSize: 12, fontWeight: 600 }}>#{i + 1}{pageAnns(p.id).length > 0 && <span title="Has annotations" style={{ color: 'var(--accent)' }}> ●</span>}</span>
                       <div className="row" style={{ gap: 2 }}>
                         <button className="btn btn-sm btn-ghost btn-icon" aria-label="Move left" disabled={i === 0} onClick={() => move(p.id, -1)}><Icon name="chevron-up" size={13} style={{ transform: 'rotate(-90deg)' }} /></button>
                         <button className="btn btn-sm btn-ghost btn-icon" aria-label="Move right" disabled={i === pages.length - 1} onClick={() => move(p.id, 1)}><Icon name="chevron-down" size={13} style={{ transform: 'rotate(-90deg)' }} /></button>
@@ -181,12 +191,31 @@ export function PdfStudio() {
               })}
             </div>
 
-            {/* Preview */}
+            {/* Preview + annotations */}
             <div className="card" style={{ padding: 12, position: 'sticky', top: 130 }}>
-              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8 }}>Preview</div>
-              {activeUrl
-                ? <img src={activeUrl} alt="Selected page" style={{ width: '100%', borderRadius: 4, boxShadow: 'var(--shadow)' }} />
-                : <p className="faint" style={{ fontSize: 13 }}>Click a page to preview it here.</p>}
+              <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{ fontWeight: 600, fontSize: 13 }}>Preview & annotate</div>
+                <input type="color" aria-label="Annotation colour" value={annColor} onChange={(e) => setAnnColor(e.target.value)} style={{ width: 24, height: 24, padding: 0, border: 'none', background: 'none', cursor: 'pointer' }} />
+              </div>
+              <div className="seg" role="group" aria-label="Annotation tool" style={{ marginBottom: 8, flexWrap: 'wrap' }}>
+                {(['select', 'text', 'highlight', 'box'] as Tool[]).map((t) => (
+                  <button key={t} className={tool === t ? 'active' : ''} onClick={() => setTool(t)} style={{ textTransform: 'capitalize' }}>{t}</button>
+                ))}
+              </div>
+              {activeId && (
+                <div className="row" style={{ marginBottom: 8, gap: 8 }}>
+                  <span className="faint" style={{ fontSize: 12 }}>{pageAnns(activeId).length} annotation{pageAnns(activeId).length !== 1 ? 's' : ''} on this page</span>
+                  <span className="spacer" />
+                  <button className="btn btn-sm btn-ghost btn-danger" disabled={!selAnn} onClick={deleteSelectedAnn}><Icon name="trash" size={13} /> Delete</button>
+                </div>
+              )}
+              {activeUrl && activeId
+                ? <AnnotationLayer imgUrl={activeUrl} annotations={pageAnns(activeId)} tool={tool} color={annColor} selectedId={selAnn} onSelect={setSelAnn} onChange={(next) => setPageAnns(activeId, next)} />
+                : <p className="faint" style={{ fontSize: 13 }}>Click a page to preview and annotate it.</p>}
+              <p className="faint" style={{ fontSize: 11.5, marginTop: 8 }}>
+                Text / highlight / box draw an overlay on top of the page — they do not remove the original content. Overlays
+                are baked into the exported PDF. For upright pages the placement is exact.
+              </p>
             </div>
           </div>
 

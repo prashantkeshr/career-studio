@@ -5,10 +5,11 @@ browser. One reusable **Career Profile** feeds many documents; a shared design
 system keeps them consistent; everything is stored locally and nothing is
 uploaded to any server.
 
-> **Status: Phases 1–3 (page ops) complete and runnable.**
-> This is an honest, incremental build. Remaining work (PDF annotations/OCR,
-> Portfolio, Website builder) is scaffolded in the feature registry as
-> **Coming soon** and is *not* faked in the UI. See [Roadmap](#roadmap).
+> **Status: Phases 1–3 complete and runnable.**
+> This is an honest, incremental build. Remaining work (Portfolio, Website
+> builder, image/asset studio, cover letters, AI assist) is scaffolded in the
+> feature registry as **Coming soon** and is *not* faked in the UI. See
+> [Roadmap](#roadmap).
 
 ---
 
@@ -33,10 +34,12 @@ uploaded to any server.
 | Backup & restore | ✅ Available | Full-workspace or single-resume JSON; validated on import. |
 | Schema migrations | ✅ Available | Saved projects are migrated forward on load (v1 → v2). |
 | PDF Studio — page ops | ✅ Available | View, reorder, rotate, delete, duplicate, extract, **merge** & **split**; export edited PDF (pdf.js + pdf-lib, non-destructive). |
+| PDF annotations | ✅ Available | Text, highlight & box overlays baked into the exported PDF. Overlay only — does not remove underlying content. |
+| PDF → resume reconstruction | ◐ Partial | Extracts the PDF text layer into an editable resume with a review step; layout not preserved. |
+| OCR (scanned PDFs) | ◐ Partial | Optional, in-browser (tesseract.js). Downloads a language model on first use (needs internet) and may misread — review required. |
 | Responsive + light/dark | ✅ Available | Three-panel desktop; tabbed panes on mobile. |
 
-**Not yet built (shown honestly as "Coming soon" in-app):** PDF annotations,
-PDF import & resume reconstruction, OCR for scanned PDFs, image/asset studio,
+**Not yet built (shown honestly as "Coming soon" in-app):** image/asset studio,
 portfolio studio, website builder & ZIP export, cover-letter builder, and
 optional AI writing assistance. Automatic cloud publishing is intentionally
 **Not supported** — there is no backend.
@@ -178,9 +181,10 @@ src/
 - **Phase 2 remainder (planned):** side-by-side version comparison, image/asset
   manager, cover-letter builder, smarter pagination, automated tests
   (Vitest + Playwright).
-- **Phase 3 — in progress:** PDF Studio page operations (viewer, reorder,
-  rotate, delete, duplicate, extract, merge, split, export) are **done**.
-  Remaining: PDF annotations, PDF→resume reconstruction, optional OCR.
+- **Phase 3 — done:** PDF Studio page operations (viewer, reorder, rotate,
+  delete, duplicate, extract, merge, split, export), PDF annotations (text /
+  highlight / box overlays), PDF→resume reconstruction (text layer + review),
+  and optional in-browser OCR for scanned PDFs.
 - **Phase 4** — Portfolio Studio and no-code Website Studio with static ZIP export.
 - **Phase 5** — advanced templates, localization, optional AI integrations, PWA/offline.
 
