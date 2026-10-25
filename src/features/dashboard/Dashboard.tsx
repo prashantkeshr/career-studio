@@ -10,6 +10,7 @@ import { FEATURES } from '../../core/feature-registry/registry';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Confirm } from '../../components/ui/Confirm';
 import { Icon } from '../../components/ui/Icon';
+import { DocxImportModal } from '../import/DocxImportModal';
 import type { ProjectEnvelope } from '../../core/models/types';
 
 function relTime(ts: number): string {
@@ -27,6 +28,7 @@ export function Dashboard() {
   const { projects, profile, refreshProjects, saveProjectRecord, deleteProjectRecord, storageOk } = useStore();
   const navigate = useNavigate();
   const [pickOpen, setPickOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [restoreMsg, setRestoreMsg] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -96,6 +98,7 @@ export function Dashboard() {
       {/* Quick actions */}
       <div className="row-wrap" style={{ marginBottom: 20 }}>
         <button className="btn btn-primary" onClick={() => setPickOpen(true)}><Icon name="plus" size={16} /> New resume</button>
+        <button className="btn" onClick={() => setImportOpen(true)}><Icon name="file" size={16} /> Import from Word</button>
         <button className="btn" onClick={() => navigate('/profile')}><Icon name="user" size={16} /> Edit Career Profile</button>
         <button className="btn" onClick={exportAll} disabled={projects.length === 0 && !hasProfile}><Icon name="download" size={16} /> Back up everything</button>
         <button className="btn" onClick={() => fileRef.current?.click()}><Icon name="upload" size={16} /> Restore backup</button>
@@ -173,6 +176,8 @@ export function Dashboard() {
           </div>
         </div>
       )}
+
+      <DocxImportModal open={importOpen} onClose={() => setImportOpen(false)} onCreated={(pid) => { setImportOpen(false); navigate(`/resume/${pid}`); }} />
 
       <Confirm
         open={confirmDelete !== null}

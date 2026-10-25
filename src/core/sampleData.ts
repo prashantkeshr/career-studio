@@ -99,6 +99,7 @@ export function sampleResume(profile: CareerProfile): ResumeProject {
       design: defaultDesign(),
       sectionOrder: [...DEFAULT_SECTION_ORDER],
       hiddenSections: [],
+      snapshots: [],
     },
   };
 }

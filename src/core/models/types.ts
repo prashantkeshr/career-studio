@@ -8,7 +8,7 @@
 // reordering, editing and (future) version comparison stay reliable.
 // ---------------------------------------------------------------------------
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export type ID = string;
 
@@ -124,6 +124,18 @@ export type BuiltInSectionKey =
   | 'projects'
   | 'certifications';
 
+/** A named, restorable snapshot of a resume's content + design at a point in time. */
+export interface ResumeSnapshot {
+  id: ID;
+  name: string;
+  createdAt: number;
+  content: ResumeContent;
+  templateId: string;
+  design: ResumeDesign;
+  sectionOrder: string[];
+  hiddenSections: string[];
+}
+
 export interface ResumeData {
   content: ResumeContent;
   templateId: string;
@@ -132,6 +144,8 @@ export interface ResumeData {
   sectionOrder: string[];
   /** Section keys/ids that are hidden from the rendered document. */
   hiddenSections: string[];
+  /** Named version snapshots (schema v2+). */
+  snapshots: ResumeSnapshot[];
 }
 
 // --- Project envelope ---------------------------------------------------

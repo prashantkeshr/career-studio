@@ -49,6 +49,13 @@
 .r-side { }
 .r-main { min-width: 0; }
 
+/* Direct editing affordance */
+.paper.editing .r-editable { outline: 1px dashed rgba(37, 99, 235, 0.5); outline-offset: 2px; border-radius: 2px; cursor: text; min-width: 8px; display: inline-block; }
+.paper.editing .r-editable:hover { background: rgba(37, 99, 235, 0.06); }
+.paper.editing .r-editable:focus { outline: 1px solid var(--r-accent); background: rgba(37, 99, 235, 0.08); }
+.paper.editing .r-editable[data-empty='true']::before { content: attr(data-placeholder); color: #9ca3af; }
+.paper.editing .r-summary.r-editable, .paper.editing .r-detail.r-editable { display: block; }
+
 /* ---------- Classic Professional ---------- */
 .tpl-classic { }
 .tpl-classic .r-header { text-align: center; border-bottom: 2px solid #222; padding-bottom: 12px; }

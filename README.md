@@ -5,8 +5,8 @@ browser. One reusable **Career Profile** feeds many documents; a shared design
 system keeps them consistent; everything is stored locally and nothing is
 uploaded to any server.
 
-> **Status: Phase 1 (Working Foundation) — complete and runnable.**
-> This is an honest, incremental build. Later phases (PDF Studio, DOCX, Portfolio,
+> **Status: Phases 1–2 complete and runnable.**
+> This is an honest, incremental build. Later phases (PDF Studio, Portfolio,
 > Website builder) are scaffolded in the feature registry as **Coming soon** and
 > are *not* faked in the UI. See [Roadmap](#roadmap).
 
@@ -21,20 +21,27 @@ uploaded to any server.
 | Live preview | ✅ Available | Updates as you type. |
 | Templates | ✅ Available | **6 distinct** designs; data-driven, easy to extend. |
 | Template customization | ✅ Available | Font, accent colour, heading style, text size, line height, spacing, page size, section order & visibility. |
-| Multiple versions | ◐ Partial | Duplicate a resume to tailor it per job. Richer version history is planned. |
+| Direct click-to-edit | ✅ Available | Toggle **Edit on page**, click any dashed field; edits the same data as the panel. |
+| Resume versions | ✅ Available | Duplicate for job-specific copies **and** named version snapshots (save/restore) inside a resume. |
+| DOCX export | ✅ Available | Real `.docx` (clean single-column; not the template visual design). |
+| DOCX import | ◐ Partial | Local text/structure extraction with a mandatory review step; visual formatting is not preserved. |
 | Autosave | ✅ Available | Debounced writes to IndexedDB. |
 | Undo / redo | ✅ Available | Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z (resume content & design). |
 | Quality checks | ✅ Available | Deterministic, rule-based; guidance only. |
 | PDF export | ✅ Available | Via the browser print engine (**Print → Save as PDF**). Preview matches output. |
 | Plain-text export | ✅ Available | ATS-friendly `.txt`. |
 | Backup & restore | ✅ Available | Full-workspace or single-resume JSON; validated on import. |
+| Schema migrations | ✅ Available | Saved projects are migrated forward on load (v1 → v2). |
 | Responsive + light/dark | ✅ Available | Three-panel desktop; tabbed panes on mobile. |
 
-**Not yet built (shown honestly as "Coming soon" in-app):** direct click-to-edit on
-the preview, DOCX import/export, PDF import & reconstruction, PDF Studio
-(annotate / page ops), image/asset studio, portfolio studio, website builder &
-ZIP export, cover-letter builder, OCR, and optional AI writing assistance.
-Automatic cloud publishing is intentionally **Not supported** — there is no backend.
+**Not yet built (shown honestly as "Coming soon" in-app):** PDF import &
+reconstruction, PDF Studio (annotate / page ops), image/asset studio, portfolio
+studio, website builder & ZIP export, cover-letter builder, OCR, and optional AI
+writing assistance. Automatic cloud publishing is intentionally **Not supported**
+— there is no backend.
+
+`docx` and `mammoth` are **code-split** (dynamic import) so they load only when
+you export or import a Word file, keeping the initial bundle small (~80 kB gzip).
 
 ## The six templates
 
@@ -164,9 +171,12 @@ src/
 
 ## Roadmap
 
-- **Phase 2** — resume versioning & comparison, direct preview editing, DOCX
-  import/export (with a review step), image/asset manager, cover-letter builder,
-  smarter pagination, automated tests (Vitest + Playwright).
+- **Phase 2 — done:** direct click-to-edit on the preview, resume version
+  snapshots, DOCX export, DOCX import with a review step, schema migrations,
+  on-demand code-splitting for heavy libraries.
+- **Phase 2 remainder (planned):** side-by-side version comparison, image/asset
+  manager, cover-letter builder, smarter pagination, automated tests
+  (Vitest + Playwright).
 - **Phase 3** — PDF Studio: viewer, page operations, annotations, PDF→resume
   reconstruction, optional OCR.
 - **Phase 4** — Portfolio Studio and no-code Website Studio with static ZIP export.

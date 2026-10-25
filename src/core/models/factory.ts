@@ -112,6 +112,7 @@ export function newResumeProject(opts: {
     design: defaultDesign(),
     sectionOrder: [...DEFAULT_SECTION_ORDER],
     hiddenSections: [],
+    snapshots: [],
   };
   return {
     id: uid('prj'),

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import type { ProjectEnvelope, ResumeContent, ResumeData, ResumeProject } from '../../core/models/types';
+import type { ProjectEnvelope, ResumeContent, ResumeData, ResumeProject, ResumeSnapshot } from '../../core/models/types';
 import { BUILTIN_SECTIONS } from './sections';
 import { useStore } from '../../state/store';
 import * as dbApi from '../../core/storage/db';
@@ -11,9 +11,11 @@ import { Icon } from '../../components/ui/Icon';
 import { runResumeChecks, type Finding } from '../../services/quality/checks';
 import { resumeToText } from '../../services/exports/text';
 import { buildBackup, download, safeFilename } from '../../services/exports/backup';
-import { newResumeProject } from '../../core/models/factory';
+import { resumeToDocxBlob, downloadBlob } from '../../services/exports/docx';
+import { newResumeProject, uid } from '../../core/models/factory';
+import { migrateProject } from '../../core/migrations/migrate';
 
-/** Keep sectionOrder/hiddenSections consistent with the current custom sections. */
+/** Keep sectionOrder/hiddenSections consistent and ensure v2 fields exist. */
 function normalize(data: ResumeData): ResumeData {
   const customIds = data.content.customSections.map((s) => s.id);
   const valid = new Set<string>([...BUILTIN_SECTIONS, ...customIds]);
@@ -21,7 +23,21 @@ function normalize(data: ResumeData): ResumeData {
   for (const id of customIds) if (!order.includes(id)) order.push(id);
   for (const b of BUILTIN_SECTIONS) if (!order.includes(b)) order.push(b);
   const hidden = data.hiddenSections.filter((k) => valid.has(k));
-  return { ...data, sectionOrder: order, hiddenSections: hidden };
+  return { ...data, sectionOrder: order, hiddenSections: hidden, snapshots: data.snapshots ?? [] };
+}
+
+function normalizeProject(p: ResumeProject): ResumeProject {
+  return { ...p, data: normalize(p.data) };
+}
+
+function relTime(ts: number): string {
+  const s = Math.round((Date.now() - ts) / 1000);
+  if (s < 60) return 'just now';
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.round(h / 24)}d ago`;
 }
 
 type Pane = 'content' | 'preview' | 'design';
@@ -37,6 +53,9 @@ export function ResumeStudio() {
   const [pane, setPane] = useState<Pane>('content');
   const [showChecks, setShowChecks] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
 
   // Undo / redo history (resume data snapshots).
   const past = useRef<ResumeData[]>([]);
@@ -50,7 +69,8 @@ export function ResumeStudio() {
       const rec = (await dbApi.getProject(id)) as ProjectEnvelope | null;
       if (cancelled) return;
       if (!rec || rec.type !== 'resume') { setMissing(true); return; }
-      setProject(rec as ResumeProject);
+      const { project: migrated } = migrateProject(rec);
+      setProject(normalizeProject(migrated as ResumeProject));
       past.current = [];
       future.current = [];
     })();
@@ -161,6 +181,44 @@ export function ResumeStudio() {
     download(safeFilename(project.title, 'json'), JSON.stringify(buildBackup(profile, [project as ProjectEnvelope]), null, 2));
     setShowExport(false);
   };
+  const exportDocx = async () => {
+    if (!project) return;
+    setShowExport(false);
+    setBusy('Generating DOCX…');
+    try {
+      const blob = await resumeToDocxBlob(project.data);
+      downloadBlob(safeFilename(project.title, 'docx'), blob);
+    } catch {
+      alert('Sorry — DOCX export failed for this content.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // --- Version snapshots ---
+  const saveVersion = () => {
+    if (!project) return;
+    const n = project.data.snapshots.length + 1;
+    const name = window.prompt('Name this version', `Version ${n}`);
+    if (name === null) return;
+    const d = project.data;
+    const snap: ResumeSnapshot = {
+      id: uid('ver'), name: name.trim() || `Version ${n}`, createdAt: Date.now(),
+      content: structuredClone(d.content), templateId: d.templateId, design: structuredClone(d.design),
+      sectionOrder: [...d.sectionOrder], hiddenSections: [...d.hiddenSections],
+    };
+    commit((prev) => ({ ...prev, snapshots: [snap, ...prev.snapshots] }), false);
+  };
+  const restoreVersion = (snap: ResumeSnapshot) => {
+    commit((prev) => ({
+      ...prev,
+      content: structuredClone(snap.content), templateId: snap.templateId, design: structuredClone(snap.design),
+      sectionOrder: [...snap.sectionOrder], hiddenSections: [...snap.hiddenSections],
+    }), true);
+    setShowVersions(false);
+  };
+  const deleteVersion = (sid: string) =>
+    commit((prev) => ({ ...prev, snapshots: prev.snapshots.filter((s) => s.id !== sid) }), false);
 
   if (missing) {
     return (
@@ -187,22 +245,29 @@ export function ResumeStudio() {
           onChange={(e) => setTitle(e.target.value)}
           aria-label="Resume title"
         />
-        <span className="save-pill"><span className={`save-dot ${save}`} />{saveText}</span>
+        <span className="save-pill"><span className={`save-dot ${save}`} />{busy ?? saveText}</span>
         <span className="spacer" />
+        <button className={`btn btn-sm ${editing ? 'btn-primary' : ''}`} onClick={() => { setEditing((v) => !v); setPane('preview'); }} aria-pressed={editing} title="Edit text directly on the page">
+          <Icon name={editing ? 'check' : 'file'} size={15} /> {editing ? 'Editing' : 'Edit on page'}
+        </button>
         <button className="btn btn-sm btn-ghost btn-icon" onClick={undo} disabled={past.current.length === 0} aria-label="Undo" title="Undo (Ctrl+Z)"><Icon name="chevron-up" style={{ transform: 'rotate(-90deg)' }} /></button>
         <button className="btn btn-sm btn-ghost btn-icon" onClick={redo} disabled={future.current.length === 0} aria-label="Redo" title="Redo (Ctrl+Shift+Z)"><Icon name="chevron-down" style={{ transform: 'rotate(-90deg)' }} /></button>
         <button className="btn btn-sm" onClick={() => setShowChecks(true)}>
           <Icon name={issueCount ? 'alert' : 'check'} size={15} /> Checks{issueCount ? ` (${issueCount})` : ''}
         </button>
-        <button className="btn btn-sm btn-ghost" onClick={duplicate} title="Duplicate as a new version"><Icon name="copy" size={15} /> Duplicate</button>
+        <button className="btn btn-sm btn-ghost" onClick={() => setShowVersions(true)} title="Version snapshots">
+          <Icon name="copy" size={15} /> Versions{project.data.snapshots.length ? ` (${project.data.snapshots.length})` : ''}
+        </button>
+        <button className="btn btn-sm btn-ghost" onClick={duplicate} title="Duplicate as a separate resume">Duplicate</button>
         <div style={{ position: 'relative' }}>
           <button className="btn btn-sm btn-primary" onClick={() => setShowExport((s) => !s)}><Icon name="download" size={15} /> Export</button>
           {showExport && (
-            <div className="card" style={{ position: 'absolute', right: 0, top: '110%', zIndex: 40, padding: 6, minWidth: 220 }} onMouseLeave={() => setShowExport(false)}>
+            <div className="card" style={{ position: 'absolute', right: 0, top: '110%', zIndex: 40, padding: 6, minWidth: 230 }} onMouseLeave={() => setShowExport(false)}>
               <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start' }} onClick={doPrint}><Icon name="print" size={15} /> Print / Save as PDF</button>
+              <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start' }} onClick={exportDocx}><Icon name="file" size={15} /> Word document (.docx)</button>
               <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start' }} onClick={exportTxt}><Icon name="file" size={15} /> Plain text (.txt)</button>
               <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start' }} onClick={exportJson}><Icon name="download" size={15} /> Backup this resume (.json)</button>
-              <p className="muted" style={{ fontSize: 11.5, margin: '6px 8px 2px' }}>PDF uses your browser’s “Save as PDF”. Turn OFF headers/footers for a clean page.</p>
+              <p className="muted" style={{ fontSize: 11.5, margin: '6px 8px 2px' }}>PDF uses your browser’s “Save as PDF” (turn OFF headers/footers). DOCX is a clean single-column layout, not the template design.</p>
             </div>
           )}
         </div>
@@ -225,8 +290,13 @@ export function ResumeStudio() {
         </div>
 
         <div className={`studio-center studio-pane ${pane === 'preview' ? 'active' : ''}`}>
+          {editing && (
+            <div className="no-print" style={{ background: 'var(--accent-soft)', color: 'var(--accent)', padding: '8px 16px', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>
+              Editing on the page — click any dashed field to change it. Enter saves, Esc cancels. This edits the same data as the Content panel.
+            </div>
+          )}
           <div className="preview-wrap">
-            <ResumePreview data={project.data} />
+            <ResumePreview data={project.data} editing={editing} commit={patchContent} />
           </div>
         </div>
 
@@ -255,6 +325,36 @@ export function ResumeStudio() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Versions drawer */}
+      {showVersions && (
+        <div role="dialog" aria-modal="true" aria-label="Versions" className="no-print" onClick={() => setShowVersions(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', zIndex: 90, display: 'flex', justifyContent: 'flex-end' }}>
+          <div className="card" onClick={(e) => e.stopPropagation()} style={{ width: 'min(420px, 100%)', height: '100%', borderRadius: 0, overflow: 'auto' }}>
+            <div className="panel-head">Version snapshots <span className="spacer" /><button className="btn btn-sm btn-ghost btn-icon" aria-label="Close" onClick={() => setShowVersions(false)}><Icon name="x" /></button></div>
+            <div className="panel-pad">
+              <p className="muted" style={{ marginTop: 0, fontSize: 13 }}>Save a named snapshot of this resume’s content and design, then restore it later. Snapshots live inside this resume.</p>
+              <button className="btn btn-primary" style={{ width: '100%' }} onClick={saveVersion}><Icon name="plus" size={15} /> Save current as version</button>
+              {project.data.snapshots.length === 0 ? (
+                <p className="faint" style={{ fontSize: 13, textAlign: 'center', marginTop: 16 }}>No versions saved yet.</p>
+              ) : (
+                <div className="stack" style={{ gap: 8, marginTop: 12 }}>
+                  {project.data.snapshots.map((s) => (
+                    <div key={s.id} className="entry" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
+                        <div className="faint" style={{ fontSize: 12 }}>{s.templateId} · saved {relTime(s.createdAt)}</div>
+                      </div>
+                      <button className="btn btn-sm" onClick={() => restoreVersion(s)}>Restore</button>
+                      <button className="btn btn-sm btn-ghost btn-icon btn-danger" aria-label="Delete version" onClick={() => deleteVersion(s.id)}><Icon name="trash" size={15} /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
