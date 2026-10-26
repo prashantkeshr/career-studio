@@ -101,14 +101,14 @@ The app is fully static. For a **project page** served from a subdirectory, set 
 base path at build time so asset URLs resolve:
 
 ```bash
-# e.g. https://<user>.github.io/career-studio/
-CS_BASE=/career-studio/ npm run build
+# e.g. https://<user>.github.io/ceerstudiooc26.du.og/
+CS_BASE=/ceerstudiooc26.du.og/ npm run build
 ```
 
 On Windows PowerShell:
 
 ```powershell
-$env:CS_BASE="/career-studio/"; npm run build
+$env:CS_BASE="/ceerstudiooc26.du.og/"; npm run build
 ```
 
 Then publish the `dist/` folder (push to a `gh-pages` branch, or use a GitHub
