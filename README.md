@@ -97,24 +97,29 @@ npm run typecheck
 
 ## Deploy to GitHub Pages (or any static host)
 
-The app is fully static. For a **project page** served from a subdirectory, set the
-base path at build time so asset URLs resolve:
+The app is fully static and deploys via GitHub Actions
+([.github/workflows/deploy.yml](.github/workflows/deploy.yml)) on every push to
+`main`.
+
+**Live:** https://careerstudio.dhurta.org/ — served from a **custom domain at the
+root**, so the build uses the default base path (`/`). `public/CNAME` holds the
+domain so it stays attached across Actions deploys; set the same domain under
+**Settings → Pages**, and point a DNS `CNAME` record for `careerstudio` at
+`<user>.github.io`.
+
+Because routing uses `HashRouter`, refreshing a deep link never 404s and no
+SPA-fallback/404.html trick is required.
+
+**Deploying under a subdirectory instead** (e.g. a plain project page at
+`https://<user>.github.io/<repo>/`): remove `public/CNAME` and build with a base
+path so asset URLs resolve:
 
 ```bash
-# e.g. https://<user>.github.io/ceerstudiooc26.du.og/
-CS_BASE=/ceerstudiooc26.du.og/ npm run build
+CS_BASE=/<repo>/ npm run build
 ```
 
-On Windows PowerShell:
-
-```powershell
-$env:CS_BASE="/ceerstudiooc26.du.og/"; npm run build
-```
-
-Then publish the `dist/` folder (push to a `gh-pages` branch, or use a GitHub
-Action). Because routing uses `HashRouter`, refreshing a deep link never 404s and
-no SPA-fallback/404.html trick is required. For a **root domain**, omit `CS_BASE`
-(defaults to `/`).
+On Windows PowerShell: `$env:CS_BASE="/<repo>/"; npm run build`. For a root
+domain, omit `CS_BASE` (it defaults to `/`).
 
 ---
 

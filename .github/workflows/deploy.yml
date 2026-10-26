@@ -26,10 +26,10 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      # Served from https://<user>.github.io/ceerstudiooc26.du.og/ — set the base path.
+      # Served from the custom domain https://careerstudio.dhurta.org/ at the
+      # root, so the base path is "/" (the Vite default). public/CNAME keeps the
+      # custom domain attached across Actions deploys.
       - run: npm run build
-        env:
-          CS_BASE: /ceerstudiooc26.du.og/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
