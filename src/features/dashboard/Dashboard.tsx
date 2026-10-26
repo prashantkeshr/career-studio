@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../state/store';
 import { TEMPLATES } from '../resume-studio/templates/registry';
-import { newResumeProject, newWebsiteProject, contentFromProfile } from '../../core/models/factory';
+import { newResumeProject, newWebsiteProject, newCoverLetterProject, contentFromProfile } from '../../core/models/factory';
 import { sampleProfile, sampleResume } from '../../core/sampleData';
 import * as dbApi from '../../core/storage/db';
 import { buildBackup, parseBackup, download, safeFilename } from '../../services/exports/backup';
@@ -55,8 +55,15 @@ export function Dashboard() {
     navigate(`/website/${proj.id}`);
   };
 
+  const createCoverLetter = async () => {
+    const proj = newCoverLetterProject({ title: hasProfile ? `${profile.fullName} — Cover letter` : 'Cover letter', profile });
+    await saveProjectRecord(proj);
+    navigate(`/cover-letter/${proj.id}`);
+  };
+
   const openProject = (p: ProjectEnvelope) => {
     if (p.type === 'website') navigate(`/website/${p.id}`);
+    else if (p.type === 'cover-letter') navigate(`/cover-letter/${p.id}`);
     else navigate(`/resume/${p.id}`);
   };
 
@@ -111,6 +118,7 @@ export function Dashboard() {
         <button className="btn btn-primary" onClick={() => setPickOpen(true)}><Icon name="plus" size={16} /> New resume</button>
         <button className="btn" onClick={() => setImportDocx(true)}><Icon name="file" size={16} /> Import from Word</button>
         <button className="btn" onClick={() => setImportPdf(true)}><Icon name="file" size={16} /> Rebuild from PDF</button>
+        <button className="btn" onClick={createCoverLetter}><Icon name="file" size={16} /> New cover letter</button>
         <button className="btn" onClick={createWebsite}><Icon name="home" size={16} /> New website</button>
         <button className="btn" onClick={() => navigate('/pdf')}><Icon name="print" size={16} /> PDF Studio</button>
         <button className="btn" onClick={() => navigate('/portfolio')}><Icon name="copy" size={16} /> Portfolio</button>

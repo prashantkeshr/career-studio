@@ -199,6 +199,30 @@ export interface WebsiteData {
 
 export type WebsiteProject = ProjectEnvelope<WebsiteData> & { type: 'website' };
 
+// --- Cover letters ------------------------------------------------------
+
+export interface CoverLetterDesign {
+  accent: string;
+  fontFamily: FontKey;
+  fontScale: number;
+  lineHeight: number;
+  pageSize: 'a4' | 'letter';
+}
+
+export interface CoverLetterData {
+  design: CoverLetterDesign;
+  sender: { name: string; title: string; email: string; phone: string; location: string; website: string };
+  recipient: { name: string; title: string; company: string; address: string };
+  date: string;
+  subject: string;
+  salutation: string;
+  body: string[];
+  closing: string;
+  signature: string;
+}
+
+export type CoverLetterProject = ProjectEnvelope<CoverLetterData> & { type: 'cover-letter' };
+
 export interface ProjectEnvelope<T = unknown> {
   id: ID;
   type: ProjectType;

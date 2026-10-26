@@ -5,11 +5,10 @@ browser. One reusable **Career Profile** feeds many documents; a shared design
 system keeps them consistent; everything is stored locally and nothing is
 uploaded to any server.
 
-> **Status: Phases 1–4 complete and runnable.**
-> This is an honest, incremental build. Remaining work (image/asset studio,
-> cover letters, AI assist, version comparison) is scaffolded in the feature
-> registry as **Coming soon** and is *not* faked in the UI. See
-> [Roadmap](#roadmap).
+> **Status: Phases 1–5 complete and runnable.**
+> This is an honest, incremental build. Remaining work (standalone image/asset
+> studio, optional AI assistance) is scaffolded in the feature registry as
+> **Coming soon** and is *not* faked in the UI. See [Roadmap](#roadmap).
 
 ---
 
@@ -23,7 +22,9 @@ uploaded to any server.
 | Templates | ✅ Available | **6 distinct** designs; data-driven, easy to extend. |
 | Template customization | ✅ Available | Font, accent colour, heading style, text size, line height, spacing, page size, section order & visibility. |
 | Direct click-to-edit | ✅ Available | Toggle **Edit on page**, click any dashed field; edits the same data as the panel. |
-| Resume versions | ✅ Available | Duplicate for job-specific copies **and** named version snapshots (save/restore) inside a resume. |
+| Resume versions | ✅ Available | Duplicate for job-specific copies, named version snapshots (save/restore), and **compare** a snapshot with the current resume (content diff). |
+| Cover letter builder | ✅ Available | Recipient, body paragraphs, design; prefilled from your profile. Export PDF / DOCX / TXT / JSON. |
+| Offline & installable (PWA) | ✅ Available | Service worker caches the app shell for offline use; installable to home screen. OCR still needs the network for its model. |
 | DOCX export | ✅ Available | Real `.docx` (clean single-column; not the template visual design). |
 | DOCX import | ◐ Partial | Local text/structure extraction with a mandatory review step; visual formatting is not preserved. |
 | Autosave | ✅ Available | Debounced writes to IndexedDB. |
@@ -43,9 +44,9 @@ uploaded to any server.
 | Responsive + light/dark | ✅ Available | Three-panel desktop; tabbed panes on mobile. |
 
 **Not yet built (shown honestly as "Coming soon" in-app):** standalone
-image/asset studio, cover-letter builder, resume version comparison, and
-optional AI writing assistance. Automatic cloud publishing is intentionally
-**Not supported** — there is no backend (export the ZIP and self-host).
+image/asset studio and optional AI writing assistance. Automatic cloud
+publishing is intentionally **Not supported** — there is no backend (export the
+ZIP and self-host).
 
 `docx` and `mammoth` are **code-split** (dynamic import) so they load only when
 you export or import a Word file, keeping the initial bundle small (~80 kB gzip).
@@ -191,7 +192,9 @@ src/
 - **Phase 4 — done:** Portfolio Studio (reusable projects + images) and the
   no-code Website Studio with 3 templates, SEO, live iframe preview of the real
   generated HTML, and self-contained static ZIP export.
-- **Phase 5** — advanced templates, localization, optional AI integrations, PWA/offline.
+- **Phase 5 — done:** cover letter builder (PDF/DOCX/TXT), resume version
+  comparison (content diff), and PWA/offline support (service worker + installable).
+- **Later:** standalone image/asset studio, localization, optional AI integrations.
 
 Features are promoted from "Coming soon" to "Available" only after they are
 implemented and tested.

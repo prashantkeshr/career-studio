@@ -1,5 +1,7 @@
 import type {
   CareerProfile,
+  CoverLetterData,
+  CoverLetterProject,
   PortfolioProject,
   ResumeContent,
   ResumeData,
@@ -148,6 +150,36 @@ export function newWebsiteProject(opts: {
     type: 'website',
     schemaVersion: SCHEMA_VERSION,
     title: opts.title || 'Untitled website',
+    createdAt: now,
+    updatedAt: now,
+    archived: false,
+    data,
+  };
+}
+
+export function newCoverLetterProject(opts: { title: string; profile: CareerProfile }): CoverLetterProject {
+  const now = Date.now();
+  const p = opts.profile;
+  const data: CoverLetterData = {
+    design: { accent: '#2563eb', fontFamily: 'georgia', fontScale: 1, lineHeight: 1.5, pageSize: 'a4' },
+    sender: { name: p.fullName, title: p.title, email: p.email, phone: p.phone, location: p.location, website: p.website },
+    recipient: { name: '', title: 'Hiring Manager', company: '', address: '' },
+    date: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }),
+    subject: '',
+    salutation: 'Dear Hiring Manager,',
+    body: [
+      'I am writing to express my interest in the [role] position at [company].',
+      '',
+      '',
+    ],
+    closing: 'Sincerely,',
+    signature: p.fullName,
+  };
+  return {
+    id: uid('cl'),
+    type: 'cover-letter',
+    schemaVersion: SCHEMA_VERSION,
+    title: opts.title || 'Untitled cover letter',
     createdAt: now,
     updatedAt: now,
     archived: false,

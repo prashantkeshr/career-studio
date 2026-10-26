@@ -14,6 +14,7 @@ import { buildBackup, download, safeFilename } from '../../services/exports/back
 import { resumeToDocxBlob, downloadBlob } from '../../services/exports/docx';
 import { newResumeProject, uid } from '../../core/models/factory';
 import { migrateProject } from '../../core/migrations/migrate';
+import { diffContent } from '../../services/compare/diff';
 
 /** Keep sectionOrder/hiddenSections consistent and ensure v2 fields exist. */
 function normalize(data: ResumeData): ResumeData {
@@ -54,6 +55,7 @@ export function ResumeStudio() {
   const [showChecks, setShowChecks] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
+  const [compareSnap, setCompareSnap] = useState<ResumeSnapshot | null>(null);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -349,6 +351,7 @@ export function ResumeStudio() {
                         <div style={{ fontWeight: 600, fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
                         <div className="faint" style={{ fontSize: 12 }}>{s.templateId} · saved {relTime(s.createdAt)}</div>
                       </div>
+                      <button className="btn btn-sm btn-ghost" onClick={() => setCompareSnap(s)} title="Compare with current">Compare</button>
                       <button className="btn btn-sm" onClick={() => restoreVersion(s)}>Restore</button>
                       <button className="btn btn-sm btn-ghost btn-icon btn-danger" aria-label="Delete version" onClick={() => deleteVersion(s.id)}><Icon name="trash" size={15} /></button>
                     </div>
@@ -359,6 +362,53 @@ export function ResumeStudio() {
           </div>
         </div>
       )}
+
+      {/* Version comparison */}
+      {compareSnap && (() => {
+        const diff = diffContent(compareSnap.content, project.data.content);
+        return (
+          <div role="dialog" aria-modal="true" aria-label="Compare versions" className="no-print" onClick={() => setCompareSnap(null)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 95, display: 'grid', placeItems: 'center', padding: 16 }}>
+            <div className="card" onClick={(e) => e.stopPropagation()} style={{ width: 'min(640px, 100%)', maxHeight: '86vh', overflow: 'auto', padding: 20 }}>
+              <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
+                <h3>Compare</h3>
+                <button className="btn btn-sm btn-ghost btn-icon" aria-label="Close" onClick={() => setCompareSnap(null)}><Icon name="x" /></button>
+              </div>
+              <p className="muted" style={{ marginTop: 0, fontSize: 13 }}>“{compareSnap.name}” → current. Content differences only.</p>
+              {!diff.changed ? (
+                <p className="faint" style={{ textAlign: 'center', padding: '20px 0' }}>No content differences — the current resume matches this version.</p>
+              ) : (
+                <>
+                  {diff.fields.length > 0 && (
+                    <div className="entry">
+                      <strong style={{ fontSize: 13 }}>Changed fields</strong>
+                      {diff.fields.map((f) => (
+                        <div key={f.label} style={{ fontSize: 13, marginTop: 6 }}>
+                          <div style={{ fontWeight: 600 }}>{f.label}</div>
+                          <div className="sev-error" style={{ textDecoration: 'line-through', opacity: 0.8 }}>{f.from || '(empty)'}</div>
+                          <div className="sev-info" style={{ color: 'var(--ok)' }}>{f.to || '(empty)'}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {diff.lists.map((l) => (
+                    <div className="entry" key={l.section}>
+                      <strong style={{ fontSize: 13 }}>{l.section}</strong>
+                      {l.added.map((x, i) => <div key={`a${i}`} style={{ fontSize: 13, color: 'var(--ok)' }}>+ added: {x}</div>)}
+                      {l.removed.map((x, i) => <div key={`r${i}`} className="sev-error" style={{ fontSize: 13 }}>− removed: {x}</div>)}
+                      {l.modified.map((x, i) => <div key={`m${i}`} className="sev-warning" style={{ fontSize: 13 }}>~ changed: {x}</div>)}
+                    </div>
+                  ))}
+                </>
+              )}
+              <div className="row" style={{ justifyContent: 'flex-end', marginTop: 12 }}>
+                <button className="btn btn-ghost" onClick={() => setCompareSnap(null)}>Close</button>
+                <button className="btn btn-primary" onClick={() => { restoreVersion(compareSnap); setCompareSnap(null); }}>Restore this version</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

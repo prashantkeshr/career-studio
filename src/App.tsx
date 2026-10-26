@@ -6,6 +6,7 @@ import { CareerProfilePage } from './features/career-profile/CareerProfile';
 import { ResumeStudio } from './features/resume-studio/ResumeStudio';
 import { PortfolioStudio } from './features/portfolio/PortfolioStudio';
 import { WebsiteStudio } from './features/website/WebsiteStudio';
+import { CoverLetterStudio } from './features/cover-letter/CoverLetterStudio';
 import { useStore } from './state/store';
 
 // PDF Studio pulls in pdf.js / pdf-lib — load it only when the route is visited.
@@ -26,6 +27,7 @@ export function App() {
           <Route path="/resume/:id" element={<ResumeStudio />} />
           <Route path="/portfolio" element={<PortfolioStudio />} />
           <Route path="/website/:id" element={<WebsiteStudio />} />
+          <Route path="/cover-letter/:id" element={<CoverLetterStudio />} />
           <Route path="/pdf" element={<Suspense fallback={<div className="content" style={{ paddingTop: 60, textAlign: 'center' }}><p className="muted">Loading PDF Studio…</p></div>}><PdfStudio /></Suspense>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

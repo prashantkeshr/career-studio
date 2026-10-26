@@ -304,6 +304,20 @@ button { font-family: inherit; }
 }
 .paper * { color: inherit; }
 
+/* --- Cover letter page --- */
+.paper.letter { font-family: var(--doc-font, Georgia, serif); color: #1a1a1a; }
+.paper.letter .l-sender { margin-bottom: 26px; }
+.paper.letter .l-name { font-weight: 700; font-size: 1.25em; }
+.paper.letter .l-sender-meta { font-size: 0.85em; color: #333; margin-top: 2px; }
+.paper.letter .l-date { margin-bottom: 20px; font-size: 0.92em; }
+.paper.letter .l-recipient { margin-bottom: 20px; font-size: 0.92em; white-space: pre-line; }
+.paper.letter .l-recipient .l-accent { color: var(--r-accent); font-weight: 600; }
+.paper.letter .l-subject { font-weight: 700; margin-bottom: 16px; }
+.paper.letter .l-salutation { margin-bottom: 14px; }
+.paper.letter .l-body p { margin: 0 0 14px; }
+.paper.letter .l-closing { margin-top: 20px; }
+.paper.letter .l-signature { font-weight: 700; margin-top: 4px; }
+
 /* ===========================================================================
    Print — only the .paper is printed, at real page size.
    =========================================================================== */
